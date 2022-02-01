@@ -1,21 +1,43 @@
 #!/bin/bash
-
 set -o pipefail
 
-# Some general vars
-
-if [ -z $1 ]
-then
-    echo "no kubeconfig file provided"
-    exit 1
-else
-    kubeconfig=$1
-fi
-
-kctl="kubectl --kubeconfig=$1"
+# Setting some colors for readability
+#####################################
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 WHITE='\033[0;37m'
+
+# Welcome banner!
+#################
+
+echo ""
+echo "Kubernetes healthcheck script"
+echo "#############################"
+echo ""
+echo ""
+
+# Checking the kubeconfig context
+#################################
+if [ -z $1 ]
+then
+    echo -e "INFO: no kubeconfig file provided, using current environment context"
+    if [ $(kubectl config current-context) ]
+    then
+        echo -e "${GREEN}Current context:${WHITE} $(kubectl config current-context)"
+        echo ""
+        kctl="kubectl"
+    else
+        echo -e "${RED}WARNING:${WHITE} no kubecontext found!"
+        echo ""
+        exit 1
+    fi
+    
+else
+    kubeconfig=$1
+    kctl="kubectl --kubeconfig=$1"
+    echo "Selected kubeconfig file is" $1
+    echo ""
+fi
 
 # Healthcheck functions
 #######################
@@ -41,7 +63,7 @@ function cluster_check ()
     sleep 1
 
     # Check cluster etcd server
-    if [ $cluster_etcdcheck == "ok" ]
+    if [[ $cluster_etcdcheck == "ok" ]]
     then
         echo -e "${GREEN}etcd cluster${WHITE} is running"
     else
@@ -67,7 +89,7 @@ function node_check ()
     # Check commands
     node_notready=$(kubectl --kubeconfig=$1 get nodes | grep NotReady | awk '{print $1}')
     node_scheddisabled=$(kubectl --kubeconfig=$1 get nodes | grep SchedulingDisabled | awk '{print $1}')
-    node_top=$(kubectl --kubeconfig=$1 top nodes --use-protocol-buffers)
+    node_top=$(kubectl --kubeconfig=$1 top nodes)
 
     # Check for NotReady nodes
     if [ -z $node_status ]
@@ -133,12 +155,6 @@ function pod_check ()
 
 # Main
 ######
-echo ""
-echo "Kubernetes healthcheck script"
-echo "#############################"
-echo ""
-echo "Selected kubeconfig file is" $1
-echo ""
 
 echo "Checking cluster status:"
 echo "------------------------"

@@ -147,7 +147,7 @@ function pod_check ()
     do 
         if [[ $(echo $pod | awk '{print $5}') > 0 ]]
         then
-            echo $pod | awk '{print "Pod \033[32m" $2 "\033[37m in namespace \033[32m" $1 "\033[37m has \033[32m" $5 "\033[37m restarts"}'; 
+            echo $pod | awk '{print "Pod \033[32m" $2 "\033[37m in namespace \033[32m" $1 "\033[37m has \033[32m" $5 "\033[37m restarts, last one \033[32m" $6 " " $7 "\033[37m"}'; 
         fi
     done
 }

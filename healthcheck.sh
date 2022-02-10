@@ -6,6 +6,7 @@ set -o pipefail
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 WHITE='\033[0;37m'
+BLUE='\033[0;34m'  
 
 # Welcome banner!
 #################
@@ -23,7 +24,7 @@ then
     echo -e "INFO: no kubeconfig file provided, using current environment context"
     if [ $(kubectl config current-context) ]
     then
-        echo -e "${GREEN}Current context:${WHITE} $(kubectl config current-context)"
+        echo -e "${BLUE}INFO:${WHITE} Current context is $(kubectl config current-context)"
         echo ""
         kctl="kubectl"
     else
@@ -35,7 +36,7 @@ then
 else
     kubeconfig=$1
     kctl="kubectl --kubeconfig=$1"
-    echo "Selected kubeconfig file is" $1
+    echo -e "${BLUE}INFO:${WHITE} Selected kubeconfig file is" $1
     echo ""
 fi
 
@@ -56,7 +57,7 @@ function cluster_check ()
     # Check cluster api-server
     if [ $cluster_apicheck == "ok" ]
     then
-        echo -e "${GREEN}API server${WHITE} is running"
+        echo -e "${GREEN}OK:${WHITE} API server is running"
     else
         echo -e "${RED}WARNING:${WHITE} API server is faulty"
     fi
@@ -65,7 +66,7 @@ function cluster_check ()
     # Check cluster etcd server
     if [[ $cluster_etcdcheck == "ok" ]]
     then
-        echo -e "${GREEN}etcd cluster${WHITE} is running"
+        echo -e "${GREEN}OK:${WHITE} etcd cluster is running"
     else
         echo -e "${RED}WARNING:${WHITE} etcd is faulty"
     fi
@@ -73,10 +74,10 @@ function cluster_check ()
     # Check cluster etcd members
     if [ -z $cluster_etcdpod ]
     then
-        echo "No etcd pods available to verify peers"
+        echo -e "${BLUE}INFO:${WHITE} No etcd pods available to verify peers"
     else
         echo ""
-        echo "Active etcd cluster peers:"
+        echo -e "${BLUE}INFO:${WHITE} Active etcd cluster peers:"
         $kctl exec -n kube-system -it $cluster_etcdpod -- $cluster_etcdpeercmd | awk '{print "    "$0}'
     fi
 
@@ -87,36 +88,36 @@ function cluster_check ()
 function node_check ()
 {
     # Check commands
-    node_notready=$(kubectl --kubeconfig=$1 get nodes | grep NotReady | awk '{print $1}')
-    node_scheddisabled=$(kubectl --kubeconfig=$1 get nodes | grep SchedulingDisabled | awk '{print $1}')
-    node_top=$(kubectl --kubeconfig=$1 top nodes)
+    node_notready=$($kctl get nodes | grep NotReady | awk '{print $1}')
+    node_scheddisabled=$($kctl get nodes | grep SchedulingDisabled | awk '{print $1}')
+    node_top=$($kctl top nodes)
 
     # Check for NotReady nodes
     if [ -z $node_status ]
     then
-        echo "No NotReady nodes found"  
+        echo -e "${GREEN}OK:${WHITE} No NotReady nodes found"  
     else
-        echo "WARNING: NotReady nodes found:"
+        echo -e "${RED}WARNING:${WHITE} NotReady nodes found:"
         echo "$node_notready"
     fi
     sleep 1
     # Check for SchedulingDisabled nodes
-    if [ -z $nodescheddisabled ]
+    if [ -z $node_scheddisabled ]
     then
-        echo "No SchedulingDisabled nodes found"  
+        echo -e "${GREEN}OK:${WHITE} No SchedulingDisabled nodes found"  
     else
-        echo "WARNING: SchedulingDisabled nodes found:"
-        echo "$nodescheddisabled"
+        echo -e "${RED}WARNING:${WHITE} SchedulingDisabled nodes found:"
+        echo "$node_scheddisabled" | awk '{print "    "$0}'
     fi
     sleep 1
     # Check for node CPU/mem metrics
     echo ""
-    echo "Listing node CPU/memory metrics"
+    echo -e "${BLUE}INFO:${WHITE} Listing node CPU/memory metrics"
     echo "$node_top" | awk '{print "    "$0}'
     echo ""
     sleep 1
     # Check for node conditions
-    echo "Listing node conditions:"
+    echo -e "${BLUE}INFO:${WHITE} Listing node conditions:"
     $kctl get nodes | awk '{print $1}' | tail -n +2 | while read node ;
     do  
         echo -e ${GREEN}$node${WHITE};
@@ -133,21 +134,24 @@ function pod_check ()
     # Check for pods that are not Running or Completed
     if [ -z $podunavailable ]
     then
-        echo "All pods in running or completed state"
+        echo -e "${GREEN}OK:${WHITE} All pods in running or completed state"
         echo ""
     else
-        echo "WARNING: Pods found that are not Running or Completed:"
+        echo "${RED}WARNING:${WHITE} Pods found that are not Running or Completed:"
         echo "$podunavailable"
         echo ""
     fi
 
     # Check for pod restarts
-    echo "Listing pods with restarts: "
+    echo -e "${BLUE}INFO:${WHITE} Listing pods with restarts: "
     $kctl get pods -A | tail -n +2 | while read pod ; 
     do 
-        if [[ $(echo $pod | awk '{print $5}') > 0 ]]
+        if [[ $(echo $pod | awk '{print $5}') -le 10 ]]
         then
             echo $pod | awk '{print "Pod \033[32m" $2 "\033[37m in namespace \033[32m" $1 "\033[37m has \033[32m" $5 "\033[37m restarts, last one \033[32m" $6 " " $7 "\033[37m"}'; 
+        elif [[ $(echo $pod | awk '{print $5}') > 10 ]]
+        then
+            echo $pod | awk '{print "Pod \033[31m" $2 "\033[37m in namespace \033[31m" $1 "\033[37m has \033[31m" $5 "\033[37m restarts, last one \033[31m" $6 " " $7 "\033[37m"}'; 
         fi
     done
 }

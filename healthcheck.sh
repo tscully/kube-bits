@@ -12,8 +12,8 @@ BLUE='\033[0;34m'
 #################
 
 echo ""
-echo "Kubernetes healthcheck script"
-echo "#############################"
+echo "Kubernetes basic healthcheck script"
+echo "###################################"
 echo ""
 echo ""
 

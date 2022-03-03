@@ -143,13 +143,10 @@ function pod_check ()
     fi
 
     # Check for pod restarts
-    echo -e "${BLUE}INFO:${WHITE} Listing pods with restarts: "
+    echo -e "${BLUE}INFO:${WHITE} Listing pods with 5 or more restarts: "
     $kctl get pods -A | tail -n +2 | while read pod ; 
     do 
-        if [[ $(echo $pod | awk '{print $5}') -le 10 ]]
-        then
-            echo $pod | awk '{print "Pod \033[32m" $2 "\033[37m in namespace \033[32m" $1 "\033[37m has \033[32m" $5 "\033[37m restarts, last one \033[32m" $6 " " $7 "\033[37m"}'; 
-        elif [[ $(echo $pod | awk '{print $5}') > 10 ]]
+        if [[ $(echo $pod | awk '{print $5}') > 5 ]]
         then
             echo $pod | awk '{print "Pod \033[31m" $2 "\033[37m in namespace \033[31m" $1 "\033[37m has \033[31m" $5 "\033[37m restarts, last one \033[31m" $6 " " $7 "\033[37m"}'; 
         fi

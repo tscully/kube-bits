@@ -132,12 +132,12 @@ function pod_check ()
     podunavailable=$($kctl get pods -A | grep -v Running | grep -v Completed | tail -n +2)
 
     # Check for pods that are not Running or Completed
-    if [ -z $podunavailable ]
+    if [ -z "$podunavailable" ]
     then
         echo -e "${GREEN}OK:${WHITE} All pods in running or completed state"
         echo ""
     else
-        echo "${RED}WARNING:${WHITE} Pods found that are not Running or Completed:"
+        echo -e "${RED}WARNING:${WHITE} Pods found that are not Running or Completed:"
         echo "$podunavailable"
         echo ""
     fi

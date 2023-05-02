@@ -7,6 +7,7 @@ GREEN='\033[0;32m'
 RED='\033[0;31m'
 WHITE='\033[0;37m'
 BLUE='\033[0;34m'  
+RESTARTS=3
 
 # Welcome banner!
 #################
@@ -146,7 +147,7 @@ function pod_check ()
     echo -e "${BLUE}INFO:${WHITE} Listing pods with 5 or more restarts: "
     $kctl get pods -A | tail -n +2 | while read pod ; 
     do 
-        if [[ $(echo $pod | awk '{print $5}') > 5 ]]
+        if [[ $(echo $pod | awk '{print $5}') > ${RESTARTS} ]]
         then
             echo $pod | awk '{print "Pod \033[31m" $2 "\033[37m in namespace \033[31m" $1 "\033[37m has \033[31m" $5 "\033[37m restarts, last one \033[31m" $6 " " $7 "\033[37m"}'; 
         fi
